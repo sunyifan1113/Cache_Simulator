@@ -81,6 +81,8 @@ while True:
                 cache[s][e]["tag"] = "00"
                 for b in range(B):
                     cache[s][e]["block"][b] = "00"
+        numHit = 0
+        numMiss = 0
         print("cache_cleared")
         
     elif option[0] == "cache-view":
