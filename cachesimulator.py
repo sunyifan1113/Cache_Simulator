@@ -19,6 +19,7 @@ actualRAM = [] # to store the values, will set back to original ram at end
 for i in range(start, end+1):
     actualRAM.append(RAM[i])
 RAM = actualRAM
+memorySize = len(RAM)
 print("RAM successfully initialized!")
 
 #configure cache
