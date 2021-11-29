@@ -1,3 +1,4 @@
+
 import sys
 
 #initialize RAM
@@ -9,10 +10,15 @@ with open(fileName, 'r') as f:
         if line[-1] == '\n':
             line = line[:-1]
         RAM.append(line)
-memorySize = len(RAM)
 print("*** Welcome to the cache simulator ***")
 print("initialize the RAM:")
-print("init-ram 0x00", hex(memorySize-1).upper())
+TA_input = input() # have an input line
+start = int(TA_input[11:13],16) # string manip to get the start
+end = int(TA_input[16:18],16) #string manip to get the end
+actualRAM = [] # to store the values, will set back to original ram at end
+for i in range(start, end+1):
+    actualRAM.append(RAM[i])
+RAM = actualRAM
 print("RAM successfully initialized!")
 
 #configure cache
