@@ -16,11 +16,18 @@ TA_input = input() # have an input line
 start = int(TA_input[11:13],16) # string manip to get the start
 end = int(TA_input[16:18],16) #string manip to get the end
 actualRAM = [] # to store the values, will set back to original ram at end
+for i in range(256):
+    actualRAM.append("00")
 for i in range(start, end+1):
-    actualRAM.append(RAM[i])
+    actualRAM[i] = RAM[i]
+
 RAM = actualRAM
 memorySize = len(RAM)
+print(RAM)
+print(memorySize)
 print("RAM successfully initialized!")
+
+
 
 #configure cache
 print("configure the cache:")
@@ -114,7 +121,14 @@ while True:
         print("memory_content:")
         print("address:data")
         for i in range(0, memorySize, 8):
-            print(hex(i).upper()+":",end="")
+            label = str(hex(i))
+            hex_part = label[-2:].upper()
+            if(i == 0):
+                print("0x" + "00" + ":", end="")
+            elif(i == 8):
+                print("0x" + "08" + ":", end="")
+            else:
+                print("0x" + hex_part + ":", end="")
             for j in range(8):
                 print(RAM[i+j]+" ",end="")
             print()
