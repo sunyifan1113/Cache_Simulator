@@ -1,5 +1,6 @@
 import sys
 import math
+import random
 
 # initialize RAM
 RAM = []  # a list of byte values in string
@@ -48,7 +49,7 @@ for s in range(S):
     cache.append(set0)
 # print(cache)
 # to access a block of memory, use cashe[s][e]["block"][b]. s = set #; e = line #; b = block #
-print(cache[s][e]["block"])
+
 numHit = 0
 numMiss = 0
 
@@ -65,34 +66,126 @@ writeMissPolicy = int(input("write miss policy: "))
 writeMissPolicyDic = {1: "write_allocate", 2: "no_write_allocate"}
 # 1 = write-allocate
 # 2 = no write-allocate
+hitLine = -1
+if replacementPolicy == 2:
+    queue = []
+if replacementPolicy == 3:
+    LFUarr = [0]*E
+
+
 print("cache successfully configured!")
 
 
 ################################################################# FUNCTIONS#################################################################
 
-def replaceStuff(tag):
-    if replacementPolicy == 1:
-        randomReplace(tag)
-    elif replacementPolicy == 2:
-        print("not implement yet")
-
-
-def randomReplace(tag):
-
-    first_line = []
-    for i in range(8):
-        first_line.append("00")
-    for i in range(8):
-        first_line[i] = RAM[i]
-
-    for b in range(len(cache[s][e]["block"])):
-        cache[0][0]["block"][b] = first_line[b]
-    cache[0][0]["valid"] = 1
-    cache[0][0]["tag"] = tag
-    print("eviction_line:0")
-
-
 def readCache(address):
+    binAdd = format(address, '08b')
+    s = math.log2(S)
+    m = math.log2(memorySize)
+    b = math.log2(B)
+    t = m - (s + b)
+
+    tag = ""
+    setInd = ""
+    blockOff = ""
+
+
+    for i in range(len(binAdd)):
+        if (i < t):
+            tag = tag + binAdd[i]
+        elif (i >= t and i < t + s):
+            setInd = setInd + binAdd[i]
+        else:
+            blockOff = blockOff + binAdd[i]
+
+
+    setInDec = int(str(setInd), 2)
+    blockOffInDec = int(str(blockOff), 2)
+
+    print("set:" + str(setInDec))
+
+
+    tag = int(tag, 2) # this converts the tag to hex so it matches whats in the cache
+    tag = hex(tag).upper()
+    tag = tag[2:]
+    if len(tag) < 2:
+        tag = '0'+tag
+    print("tag:" + tag)
+    newData = ""
+    if checkHit(address):
+        for e in range(E):
+            if cache[setInDec][e]["tag"] == tag:
+                if replacementPolicy == 2:
+                    for i in range(E):
+                        if queue[i] == e:
+                            queue.pop(i)
+                            queue.append(e)
+                            break
+                if replacementPolicy == 3:
+                    LFUarr[e] += 1
+                newData = cache[setInDec][e]["block"][blockOffInDec]
+                break
+        print("hit:yes")
+        print("eviction_line:-1")
+        print("ram_address:-1")
+        print("data:0x" + newData)
+        global numHit
+        numHit += 1
+    elif not checkHit(address):
+        print("hit:no")
+
+        addrIndex = address
+
+        #address = int(address, 2)  # this converts the tag to hex so it matches whats in the cache
+        address = hex(address).upper()
+        address = address[2:]
+        if len(address) < 2:
+            address = '0' + address
+
+        #replaceStuff(tag)
+        evictLine = -1
+        for e in range(E):
+            if cache[setInDec][e]["valid"] == 0:
+                evictLine = e
+                if replacementPolicy == 2:
+                    queue.append(e)
+
+                if replacementPolicy == 3:
+                    LFUarr[e] += 1
+                line = []
+                start = int(addrIndex/B)
+                for i in range(start, start+8):
+                    line.append(RAM[i])
+                cache[setInDec][e]["valid"] = 1
+                cache[setInDec][e]["tag"] = tag
+                cache[setInDec][e]["block"] = line
+                break
+
+        if evictLine == -1:
+            if replacementPolicy == 1:
+                evictLine = random.randint(0,E-1)
+            elif replacementPolicy == 2:
+                evictLine = queue.pop(0)
+                queue.append(evictLine)
+            else:
+                evictLine = min(LFUarr)
+
+        evictLine = e
+        line = []
+        start = int(addrIndex / B)
+        for i in range(start, start + 8):
+            line.append(RAM[i])
+        cache[setInDec][e]["valid"] = 1
+        cache[setInDec][e]["tag"] = tag
+        cache[setInDec][e]["block"] = line
+
+        print("eviction_line:%d"%evictLine)
+        print("ram_address:0x" + address)
+        print("data:0x" + RAM[addrIndex])
+        global numMiss
+        numMiss += 1
+
+def writeCache(address,data):
     binAdd = format(address, '08b')
     s = math.log2(S)
     m = math.log2(memorySize)
@@ -110,62 +203,94 @@ def readCache(address):
             setInd = setInd + binAdd[i]
         else:
             blockOff = blockOff + binAdd[i]
-    find = ""
-    find = find + tag + setInd + blockOff
 
     setInDec = int(str(setInd), 2)
     blockOffInDec = int(str(blockOff), 2)
-    toChange = blockOffInDec * 2
     print("set:" + str(setInDec))
-    print("tag:" + str(int(str(tag), 2)))
 
-    tag = int(tag, 2) # this converts the tag to hex so it matches whats in the cache
-    if (tag == 0):
-        tag = "00"
-    elif (tag == 8):
-        tag = "08"
-    else:
-        tag = hex(tag).upper()
-        tag = tag[-2:]# this converts the tag to hex so it matches whats in the cache
-
-    newData = ""
+    tag = int(tag, 2)  # this converts the tag to hex so it matches whats in the cache
+    tag = hex(tag).upper()
+    tag = tag[2:]
+    if len(tag) < 2:
+        tag = '0' + tag
+    print("tag:" + tag)
+    newData = data[2:]
+    dirty = 0
     if checkHit(address):
-        for e in range(E):
-            if cache[setInDec][e]["tag"] == tag:
-                newData = cache[setInDec][e]["block"][blockOffInDec]
-                break
-        print("hit:yes")
+        print("write_hit:yes")
         print("eviction_line:-1")
-        print("ram_address:-1")
-        print("data:0x" + newData)
-        global numHit
-        numHit += 1
-    elif not checkHit(address):
-        print("hit:no")
-        tag = int(tag, 2)
-        if(tag == 0): # this converts the tag to hex so it matches whats in the cache
-            tag = "00"
-        elif(tag == 8):
-            tag = "08"
+        cache[setInDec][hitLine]["block"][blockOffInDec] = newData
+        if writeHitPolicy == 1:
+            RAM[address] = newData
         else:
-            tag = hex(tag).upper()# this converts the tag to hex so it matches whats in the cache
-            tag = tag[-2:]
+            cache[setInDec][hitLine]["dirty"] = 1
+            dirty = 1
+          # this converts the tag to hex so it matches whats in the cache
+        address = hex(address).upper()
+        address = address[2:]
+        if len(address) < 2:
+            address = '0' + address
+        print("ram_address:0x"+address)
+        print("data:" + data)
+        print("dirty_bit:%d" % dirty)
 
-        addrIndex = address
+    else:
+        print("write_hit:no")
+        if writeMissPolicy == 1:
+            evictLine = -1
+            for e in range(E):
+                if cache[setInDec][e]["valid"] == 0:
+                    evictLine = e
+                    if replacementPolicy == 2:
+                        queue.append(e)
 
-        if(address == 0):
-            address = "00"
-        elif(address == 8):
-            address = "08"
+                    if replacementPolicy == 3:
+                        LFUarr[e] += 1
+                    line = []
+                    start = int(address / B)
+                    for i in range(start, start + 8):
+                        line.append(RAM[i])
+                    cache[setInDec][e]["valid"] = 1
+                    cache[setInDec][e]["tag"] = tag
+                    cache[setInDec][e]["block"] = line
+                    break
+
+            if evictLine == -1:
+                if replacementPolicy == 1:
+                    evictLine = random.randint(0, E - 1)
+                elif replacementPolicy == 2:
+                    evictLine = queue.pop(0)
+                    queue.append(evictLine)
+                else:
+                    evictLine = min(LFUarr)
+
+            evictLine = e
+            line = []
+            start = int(address / B)
+            for i in range(start, start + 8):
+                line.append(RAM[i])
+            cache[setInDec][e]["valid"] = 1
+            cache[setInDec][e]["tag"] = tag
+            cache[setInDec][e]["block"] = line
+
+            cache[setInDec][hitLine]["block"][blockOffInDec] = newData
+            if writeHitPolicy == 1:
+                RAM[address] = newData
+            else:
+                cache[setInDec][hitLine]["dirty"] = 1
+                dirty = 1
+            print("eviction_line:%d"%evictLine)
         else:
-            address = hex(address).upper()
-            address = address[-2:]
-
-        replaceStuff(tag)
+            RAM[address] = newData
+            print("eviction_line:-1")
+        #address = int(address, 2)  # this converts the tag to hex so it matches whats in the cache
+        address = hex(address).upper()
+        address = address[2:]
+        if len(address) < 2:
+            address = '0' + address
         print("ram_address:0x" + address)
-        print("data:0x" + RAM[addrIndex])
-        global numMiss
-        numMiss += 1
+        print("data:"+data)
+        print("dirty_bit:%d"%dirty)
 
 
 
@@ -188,21 +313,18 @@ def checkHit(address):
             setInd = setInd + binAdd[i]
         else:
             blockOff = blockOff + binAdd[i]
-    tag = int(tag, 2)
-    if (tag == 0):
-        tag = "00"
-    elif (tag == 8):
-        tag = "08"
-    else:
-        tag = hex(tag).upper()
-        tag = tag[-2:]
+    tag = int(tag, 2) # this converts the tag to hex so it matches whats in the cache
+    tag = hex(tag).upper()
+    tag = tag[2:]
+    if len(tag) < 2:
+        tag = '0'+tag
     setInDec = int(str(setInd), 2)
     for e in range(E):
-        if cache[setInDec][e]["valid"] == 1:
-            if cache[setInDec][e]["tag"] == tag:
-                return True
-        else:
-            return False
+        if cache[setInDec][e]["valid"] == 1 and cache[setInDec][e]["tag"] == tag:
+            global hitLine
+            hitLine = e
+            return True
+    return False
 
 
 # Cache Simulation
@@ -223,8 +345,9 @@ while True:
         readCache(address)
 
     elif option[0] == "cache-write":
-        address = option[1]
+        address = int(option[1].lower(), 16)
         data = option[2]
+        writeCache(address,data)
 
     elif option[0] == "cache-flush":
         for s in range(S):
