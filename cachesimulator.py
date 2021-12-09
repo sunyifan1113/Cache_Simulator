@@ -127,7 +127,11 @@ def readCache(address):
                 break
         print("hit:yes")
         print("eviction_line:-1")
-        print("ram_address:-1")
+        hexaddress = hex(address).upper()
+        hexaddress = hexaddress[2:]
+        if len(hexaddress) < 2:
+            hexaddress = '0' + hexaddress
+        print("ram_address:", "0x"+hexaddress)
         print("data:0x" + newData)
         global numHit
         numHit += 1
@@ -153,8 +157,8 @@ def readCache(address):
                 if replacementPolicy == 3:
                     LFUarr[e] += 1
                 line = []
-                start = int(addrIndex/B)
-                for i in range(start, start+8):
+                start = addrIndex - (addrIndex % B)
+                for i in range(start, start + B):
                     line.append(RAM[i])
                 cache[setInDec][e]["valid"] = 1
                 cache[setInDec][e]["tag"] = tag
@@ -172,8 +176,8 @@ def readCache(address):
 
         evictLine = e
         line = []
-        start = int(addrIndex / B)
-        for i in range(start, start + 8):
+        start = addrIndex - (addrIndex % B)
+        for i in range(start, start + B):
             line.append(RAM[i])
         cache[setInDec][e]["valid"] = 1
         cache[setInDec][e]["tag"] = tag
@@ -230,6 +234,7 @@ def writeCache(address,data):
         address = address[2:]
         if len(address) < 2:
             address = '0' + address
+
         print("ram_address:0x"+address)
         print("data:" + data)
         print("dirty_bit:%d" % dirty)
@@ -247,8 +252,8 @@ def writeCache(address,data):
                     if replacementPolicy == 3:
                         LFUarr[e] += 1
                     line = []
-                    start = int(address / B)
-                    for i in range(start, start + 8):
+                    start = address - (address % B)
+                    for i in range(start, start + B):
                         line.append(RAM[i])
                     cache[setInDec][e]["valid"] = 1
                     cache[setInDec][e]["tag"] = tag
@@ -266,8 +271,8 @@ def writeCache(address,data):
 
             evictLine = e
             line = []
-            start = int(address / B)
-            for i in range(start, start + 8):
+            start = address - (address % B)
+            for i in range(start, start + B):
                 line.append(RAM[i])
             cache[setInDec][e]["valid"] = 1
             cache[setInDec][e]["tag"] = tag
