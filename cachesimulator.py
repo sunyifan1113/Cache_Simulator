@@ -174,14 +174,13 @@ def readCache(address):
             else:
                 evictLine = min(LFUarr)
 
-        evictLine = e
         line = []
         start = addrIndex - (addrIndex % B)
         for i in range(start, start + B):
             line.append(RAM[i])
-        cache[setInDec][e]["valid"] = 1
-        cache[setInDec][e]["tag"] = tag
-        cache[setInDec][e]["block"] = line
+        cache[setInDec][evictLine]["valid"] = 1
+        cache[setInDec][evictLine]["tag"] = tag
+        cache[setInDec][evictLine]["block"] = line
 
         print("eviction_line:%d"%evictLine)
         print("ram_address:0x" + address)
@@ -269,20 +268,19 @@ def writeCache(address,data):
                 else:
                     evictLine = min(LFUarr)
 
-            evictLine = e
             line = []
             start = address - (address % B)
             for i in range(start, start + B):
                 line.append(RAM[i])
-            cache[setInDec][e]["valid"] = 1
-            cache[setInDec][e]["tag"] = tag
-            cache[setInDec][e]["block"] = line
+            cache[setInDec][evictLine]["valid"] = 1
+            cache[setInDec][evictLine]["tag"] = tag
+            cache[setInDec][evictLine]["block"] = line
 
-            cache[setInDec][hitLine]["block"][blockOffInDec] = newData
+            cache[setInDec][evictLine]["block"][blockOffInDec] = newData
             if writeHitPolicy == 1:
                 RAM[address] = newData
             else:
-                cache[setInDec][hitLine]["dirty"] = 1
+                cache[setInDec][evictLine]["dirty"] = 1
                 dirty = 1
             print("eviction_line:%d"%evictLine)
         else:
